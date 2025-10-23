@@ -33,12 +33,12 @@ df["timestamp"] = pd.to_datetime(df["timestamp"], errors="coerce")
 if "packet_loss_percent" in df.columns:
     df["packet_loss"] = df["packet_loss_percent"] / 100.0
 
-# converter throughput em Mbps
-df["download_mbps"] = df["download_throughput_bps"] / 1e6
-df["upload_mbps"] = df["upload_throughput_bps"] / 1e6
+# manter throughput em bps
+df["download_bps"] = df["download_throughput_bps"]
+df["upload_bps"] = df["upload_throughput_bps"]
 
 # limpeza
-num_cols = ["download_mbps", "upload_mbps", "rtt_download_sec", "rtt_upload_sec", "packet_loss"]
+num_cols = ["download_bps", "upload_bps", "rtt_download_sec", "rtt_upload_sec", "packet_loss"]
 for c in num_cols:
     df[c] = pd.to_numeric(df[c], errors="coerce")
 df = df.dropna(subset=num_cols)
@@ -62,7 +62,7 @@ def resumo_estatistico(series):
         "max": series.max()
     }
 
-vars_interesse = ["download_mbps", "upload_mbps", "rtt_download_sec", "rtt_upload_sec", "packet_loss"]
+vars_interesse = ["download_bps", "upload_bps", "rtt_download_sec", "rtt_upload_sec", "packet_loss"]
 
 # estatísticas gerais
 estatisticas = {v: resumo_estatistico(df[v]) for v in vars_interesse}
@@ -84,7 +84,7 @@ for v in vars_interesse:
     plt.savefig(f"outputs/figuras/hist_{v}.png")
     plt.close()
 
-sns.scatterplot(x="rtt_download_sec", y="download_mbps", data=df)
+sns.scatterplot(x="rtt_download_sec", y="download_bps", data=df)
 plt.title("Scatter RTT vs Throughput (download)")
 plt.savefig("outputs/figuras/scatter_rtt_throughput.png")
 plt.close()
@@ -107,8 +107,8 @@ plt.savefig("outputs/figuras/mle_rtt.png")
 plt.close()
 
 # --- Throughput (Gamma) ---
-th = df["download_mbps"].dropna()
-th = th[th > 0]  # 🔹 remove valores negativos ou zero
+th = df["download_bps"].dropna()
+th = th[th > 0]
 k_mle, loc, scale_mle = stats.gamma.fit(th, floc=0)
 
 print(f"Throughput Gamma MLE: shape={k_mle:.4f}, scale={scale_mle:.4f}, rate={1/scale_mle:.4f}")
@@ -129,7 +129,6 @@ print(f"Perda (MLE) p={p_mle:.6f}")
 # 5. INFERÊNCIA BAYESIANA (analítica)
 # ============================================================
 
-# Dividir treino e teste
 train, test = train_test_split(df, test_size=0.3, random_state=42)
 
 # ----- (1) Normal–Normal (RTT) -----
@@ -146,7 +145,6 @@ media_pred_rtt = mu_n
 var_pred_rtt = sigma2 + tau_n2
 print(f"\nPosterior RTT: mu_n={mu_n:.4f}, var_n={tau_n2:.6f}")
 
-# comparação com dados de teste
 mean_test_rtt = test["rtt_download_sec"].mean()
 print(f"Média teste RTT={mean_test_rtt:.4f}, preditiva={media_pred_rtt:.4f}")
 
@@ -163,7 +161,7 @@ p_post_mean = an / (an + bn)
 print(f"\nPosterior Beta-Binomial: a_n={an:.1f}, b_n={bn:.1f}, média posterior={p_post_mean:.6f}")
 
 # ----- (3) Gama–Gama (Throughput) -----
-y_train = train["download_mbps"].dropna()
+y_train = train["download_bps"].dropna()
 n = len(y_train)
 k = k_mle
 a0, b0 = 1.0, 1.0
