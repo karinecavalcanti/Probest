@@ -172,7 +172,7 @@ x = np.linspace(rtt.min(), rtt.max(), 200)
 plt.hist(rtt, bins=30, density=True, alpha=0.5)
 plt.plot(x, stats.norm.pdf(x, mu_mle, sigma_mle), 'r')
 plt.title("RTT - Ajuste Normal (MLE)")
-plt.savefig("C:/Users/Julia/Desktop/compsoc/outputs/figuras/mle_rtt.png")
+plt.savefig("outputs/figuras/mle_rtt.png")
 plt.close()
 
 # --- Throughput (Gamma) ---
@@ -187,7 +187,7 @@ x = np.linspace(th.min(), th.max(), 200)
 plt.hist(th, bins=30, density=True, alpha=0.5)
 plt.plot(x, stats.gamma.pdf(x, k_mle, scale=scale_mle), 'r')
 plt.title("Throughput - Ajuste Gamma (MLE)")
-plt.savefig("C:/Users/Julia/Desktop/compsoc/outputs/figuras/mle_throughput.png")
+plt.savefig("outputs/figuras/mle_throughput.png")
 plt.close()
 
 # --- Perda (proporção) ---
@@ -252,7 +252,7 @@ comparacao = pd.DataFrame({
     "MLE": [mu_mle, p_mle, 1/scale_mle],
     "Bayes (Posterior Mean)": [mu_n, p_post_mean, E_beta]
 })
-comparacao.to_csv("C:/Users/Julia/Desktop/compsoc/outputs/tabelas/comparacao_mle_bayes.csv", index=False)
+comparacao.to_csv("outputs/tabelas/comparacao_mle_bayes.csv", index=False)
 print("\n=== Comparação MLE vs Bayes ===")
 print(comparacao)
 
@@ -264,7 +264,7 @@ plt.hist(test["rtt_download_sec"], bins=30, density=True, alpha=0.5, label="dado
 plt.plot(x, stats.norm.pdf(x, mu_n, np.sqrt(var_pred_rtt)), 'r', label="predictiva bayes")
 plt.legend()
 plt.title("Posterior Predictive RTT")
-plt.savefig("C:/Users/Julia/Desktop/compsoc/outputs/figuras/predictiva_rtt.png")
+plt.savefig("outputs/figuras/predictiva_rtt.png")
 plt.close()
 
 print("\nConcluído. Gráficos e tabelas salvos em 'outputs/'.")
