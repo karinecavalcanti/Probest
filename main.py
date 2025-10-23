@@ -57,11 +57,32 @@ for v, s in estatisticas.items():
     print(v, s)
 
 
-# estatisticas por cliente e servidor
-estat_cliente = df.groupby("client")[vars_interesse].agg(["mean", "median", "var", "std"])
-estat_servidor = df.groupby("server")[vars_interesse].agg(["mean", "median", "var","std"])
+# estatisticas por cliente e servidor - VERSÃO SIMPLES E DIRETA
+print("\n=== Calculando estatísticas por cliente e servidor ===")
+
+# Usando agg com todas as estatísticas de uma vez
+estatisticas_desejadas = ["mean", "median", "var", "std", lambda x: x.quantile(0.9), lambda x: x.quantile(0.99)]
+
+estat_cliente = df.groupby("client")[vars_interesse].agg(estatisticas_desejadas)
+estat_servidor = df.groupby("server")[vars_interesse].agg(estatisticas_desejadas)
+
+# Renomear colunas para ficar claro
+novas_colunas = []
+for col in estat_cliente.columns:
+    if col[1] == '<lambda_0>':
+        novas_colunas.append(f"{col[0]}_q0.9")
+    elif col[1] == '<lambda_1>':
+        novas_colunas.append(f"{col[0]}_q0.99")
+    else:
+        novas_colunas.append(f"{col[0]}_{col[1]}")
+
+estat_cliente.columns = novas_colunas
+estat_servidor.columns = novas_colunas
+
+# Salvar
 estat_cliente.to_csv("outputs/tabelas/estat_por_cliente.csv")
 estat_servidor.to_csv("outputs/tabelas/estat_por_servidor.csv")
+
 
 
 
