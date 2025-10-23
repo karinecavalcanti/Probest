@@ -18,7 +18,7 @@ from sklearn.model_selection import train_test_split
 # ============================================================
 # 2. CARREGAR E PRE-PROCESSAR O DATASET
 # ============================================================
-df = pd.read_csv("C:/Users/Julia/Desktop/compsoc/data/ndt_tests_corrigido.csv")
+df = pd.read_csv("data/ndt_tests_corrigido.csv")
 
 # padronizar colunas (ajuste conforme seu CSV)
 df.columns = [c.strip().lower().replace(" ", "_") for c in df.columns]
@@ -32,7 +32,6 @@ df = df.dropna(subset=num_cols)
 
 print("Dimensões do dataset:", df.shape)
 print(df.head())
-
 
 
 # ============================================================
@@ -61,30 +60,102 @@ for v, s in estatisticas.items():
 # estatisticas por cliente e servidor
 estat_cliente = df.groupby("client")[vars_interesse].agg(["mean", "median", "var", "std"])
 estat_servidor = df.groupby("server")[vars_interesse].agg(["mean", "median", "var","std"])
-estat_cliente.to_csv("C:/Users/Julia/Desktop/compsoc/outputs/tabelas/estat_por_cliente.csv")
-estat_servidor.to_csv("C:/Users/Julia/Desktop/compsoc/outputs/tabelas/estat_por_servidor.csv")
+estat_cliente.to_csv("outputs/tabelas/estat_por_cliente.csv")
+estat_servidor.to_csv("outputs/tabelas/estat_por_servidor.csv")
 
 
 
-# graficos principais
+# ============================================================
+# 3.1 SELEÇÃO DE CLIENTES/SERVIDORES DISTINTOS
+# ============================================================
+
+# Analisar diferenças entre clientes
+client_stats = df.groupby("client")["download_throughput_bps"].agg(["mean", "std"])
+print("\n=== Estatísticas de throughput por cliente ===")
+print(client_stats.sort_values("mean", ascending=False))
+
+# Selecionar dois clientes com comportamentos distintos
+# Exemplo: maior vs menor throughput, ou maior vs menor variabilidade
+cliente_alto = client_stats.nlargest(1, "mean").index[0]
+cliente_baixo = client_stats.nsmallest(1, "mean").index[0]
+
+print(f"\nClientes selecionados para análise:")
+print(f"Cliente alto desempenho: {cliente_alto}")
+print(f"Cliente baixo desempenho: {cliente_baixo}")
+
+# ============================================================
+# 3.2 GRÁFICOS COMPARATIVOS PARA CLIENTES SELECIONADOS
+# ============================================================
+
+# Filtrar dados dos clientes selecionados
+df_clientes_sel = df[df["client"].isin([cliente_alto, cliente_baixo])]
+
+# Histogramas comparativos
 for v in vars_interesse:
-    plt.figure()
-    sns.histplot(df[v], kde=True)
-    plt.title(f"Histograma - {v}")
-    plt.savefig(f"C:/Users/Julia/Desktop/compsoc/outputs/figuras/hist_{v}.png")
+    plt.figure(figsize=(10, 6))
+    for cliente in [cliente_alto, cliente_baixo]:
+        dados_cliente = df_clientes_sel[df_clientes_sel["client"] == cliente][v]
+        plt.hist(dados_cliente, alpha=0.6, label=cliente, bins=20, density=True)
+    plt.title(f"Histograma Comparativo - {v}")
+    plt.legend()
+    plt.savefig(f"outputs/figuras/hist_comp_{v}.png")
     plt.close()
 
+# Boxplots comparativos
+for v in vars_interesse:
+    plt.figure(figsize=(8, 6))
+    dados_box = [df_clientes_sel[df_clientes_sel["client"] == c][v] for c in [cliente_alto, cliente_baixo]]
+    plt.boxplot(dados_box, labels=[cliente_alto, cliente_baixo])
+    plt.title(f"Boxplot - {v}")
+    plt.savefig(f"outputs/figuras/boxplot_{v}.png")
+    plt.close()
 
-sns.scatterplot(x="rtt_download_sec", y="download_throughput_bps", data=df)
-plt.title("Scatter RTT vs Throughput (download)")
-plt.savefig("C:/Users/Julia/Desktop/compsoc/outputs/figuras/scatter_rtt_throughput.png")
+# Scatter plots comparativos
+plt.figure(figsize=(10, 6))
+cores = {"cliente_alto": "blue", "cliente_baixo": "red"}
+for cliente, cor in zip([cliente_alto, cliente_baixo], ["blue", "red"]):
+    dados_cliente = df_clientes_sel[df_clientes_sel["client"] == cliente]
+    plt.scatter(dados_cliente["rtt_download_sec"], 
+                dados_cliente["download_throughput_bps"], 
+                alpha=0.6, label=cliente, c=cor)
+plt.xlabel("RTT Download (sec)")
+plt.ylabel("Throughput Download (bps)")
+plt.legend()
+plt.title("Scatter RTT vs Throughput - Clientes Selecionados")
+plt.savefig("outputs/figuras/scatter_clientes_sel.png")
 plt.close()
 
+# ============================================================
+# 3.3 MODELAGEM PARA CLIENTES SELECIONADOS
+# ============================================================
 
+print(f"\n=== MODELAGEM PARA CLIENTE {cliente_alto} ===")
+dados_cliente_alto = df[df["client"] == cliente_alto]
 
+# RTT - Normal
+rtt_alto = dados_cliente_alto["rtt_download_sec"].dropna()
+mu_alto, sigma_alto = stats.norm.fit(rtt_alto)
+print(f"RTT Cliente {cliente_alto}: mu={mu_alto:.4f}, sigma={sigma_alto:.4f}")
 
+# Throughput - Gamma
+th_alto = dados_cliente_alto["download_throughput_bps"].dropna()
+th_alto = th_alto[th_alto > 0]
+k_alto, _, scale_alto = stats.gamma.fit(th_alto, floc=0)
+print(f"Throughput Cliente {cliente_alto}: shape={k_alto:.4f}, scale={scale_alto:.4f}")
 
+print(f"\n=== MODELAGEM PARA CLIENTE {cliente_baixo} ===")
+dados_cliente_baixo = df[df["client"] == cliente_baixo]
 
+# RTT - Normal  
+rtt_baixo = dados_cliente_baixo["rtt_download_sec"].dropna()
+mu_baixo, sigma_baixo = stats.norm.fit(rtt_baixo)
+print(f"RTT Cliente {cliente_baixo}: mu={mu_baixo:.4f}, sigma={sigma_baixo:.4f}")
+
+# Throughput - Gamma
+th_baixo = dados_cliente_baixo["download_throughput_bps"].dropna()
+th_baixo = th_baixo[th_baixo > 0]
+k_baixo, _, scale_baixo = stats.gamma.fit(th_baixo, floc=0)
+print(f"Throughput Cliente {cliente_baixo}: shape={k_baixo:.4f}, scale={scale_baixo:.4f}")
 
 
 # ============================================================
