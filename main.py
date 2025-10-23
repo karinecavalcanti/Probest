@@ -18,7 +18,7 @@ from sklearn.model_selection import train_test_split
 # ============================================================
 # 2. CARREGAR E PRE-PROCESSAR O DATASET
 # ============================================================
-df = pd.read_csv("data/ndt_tests_corrigido.csv")
+df = pd.read_csv("c:/Users/Julia/Desktop/compsoc/data/ndt_tests_corrigido.csv")
 
 # padronizar colunas (ajuste conforme seu CSV)
 df.columns = [c.strip().lower().replace(" ", "_") for c in df.columns]
@@ -80,8 +80,8 @@ estat_cliente.columns = novas_colunas
 estat_servidor.columns = novas_colunas
 
 # Salvar
-estat_cliente.to_csv("outputs/tabelas/estat_por_cliente.csv")
-estat_servidor.to_csv("outputs/tabelas/estat_por_servidor.csv")
+estat_cliente.to_csv("c:/Users/Julia/Desktop/compsoc/outputs/tabelas/estat_por_cliente.csv")
+estat_servidor.to_csv("c:/Users/Julia/Desktop/compsoc/outputs/tabelas/estat_por_servidor.csv")
 
 
 
@@ -100,9 +100,6 @@ print(client_stats.sort_values("mean", ascending=False))
 cliente_alto = client_stats.nlargest(1, "mean").index[0]
 cliente_baixo = client_stats.nsmallest(1, "mean").index[0]
 
-print(f"\nClientes selecionados para análise:")
-print(f"Cliente alto desempenho: {cliente_alto}")
-print(f"Cliente baixo desempenho: {cliente_baixo}")
 
 # ============================================================
 # 3.2 GRÁFICOS COMPARATIVOS PARA CLIENTES SELECIONADOS
@@ -113,13 +110,23 @@ df_clientes_sel = df[df["client"].isin([cliente_alto, cliente_baixo])]
 
 # Histogramas comparativos
 for v in vars_interesse:
+    
     plt.figure(figsize=(10, 6))
+    
     for cliente in [cliente_alto, cliente_baixo]:
+    
         dados_cliente = df_clientes_sel[df_clientes_sel["client"] == cliente][v]
-        plt.hist(dados_cliente, alpha=0.6, label=cliente, bins=20, density=True)
+    
+       # dados_log = np.log10(dados_cliente[dados_cliente > 0])  
+
+        plt.hist(dados_cliente, alpha=0.8, label=cliente, bins=20, density=False, edgecolor = 'black')
+
+
+    plt.xlabel("(Download Throughput [bps])")  # eixo X logarítmico
+    plt.ylabel("Frequência")                        # eixo Y = contagem de observações
     plt.title(f"Histograma Comparativo - {v}")
     plt.legend()
-    plt.savefig(f"outputs/figuras/hist_comp_{v}.png")
+    plt.savefig(f"c:/Users/Julia/Desktop/compsoc/outputs/figuras/hist_comp_{v}.png")
     plt.close()
 
 # Boxplots comparativos
@@ -128,7 +135,7 @@ for v in vars_interesse:
     dados_box = [df_clientes_sel[df_clientes_sel["client"] == c][v] for c in [cliente_alto, cliente_baixo]]
     plt.boxplot(dados_box, labels=[cliente_alto, cliente_baixo])
     plt.title(f"Boxplot - {v}")
-    plt.savefig(f"outputs/figuras/boxplot_{v}.png")
+    plt.savefig(f"c:/Users/Julia/Desktop/compsoc/outputs/figuras/boxplot_{v}.png")
     plt.close()
 
 # Scatter plots comparativos
@@ -143,7 +150,7 @@ plt.xlabel("RTT Download (sec)")
 plt.ylabel("Throughput Download (bps)")
 plt.legend()
 plt.title("Scatter RTT vs Throughput - Clientes Selecionados")
-plt.savefig("outputs/figuras/scatter_clientes_sel.png")
+plt.savefig("c:/Users/Julia/Desktop/compsoc/outputs/figuras/scatter_clientes_sel.png")
 plt.close()
 
 # ============================================================
@@ -193,7 +200,7 @@ x = np.linspace(rtt.min(), rtt.max(), 200)
 plt.hist(rtt, bins=30, density=True, alpha=0.5)
 plt.plot(x, stats.norm.pdf(x, mu_mle, sigma_mle), 'r')
 plt.title("RTT - Ajuste Normal (MLE)")
-plt.savefig("outputs/figuras/mle_rtt.png")
+plt.savefig("c:/Users/Julia/Desktop/compsoc/outputs/figuras/mle_rtt.png")
 plt.close()
 
 # --- Throughput (Gamma) ---
@@ -208,7 +215,7 @@ x = np.linspace(th.min(), th.max(), 200)
 plt.hist(th, bins=30, density=True, alpha=0.5)
 plt.plot(x, stats.gamma.pdf(x, k_mle, scale=scale_mle), 'r')
 plt.title("Throughput - Ajuste Gamma (MLE)")
-plt.savefig("outputs/figuras/mle_throughput.png")
+plt.savefig("c:/Users/Julia/Desktop/compsoc/outputs/figuras/mle_throughput.png")
 plt.close()
 
 # --- Perda (proporção) ---
@@ -273,7 +280,7 @@ comparacao = pd.DataFrame({
     "MLE": [mu_mle, p_mle, 1/scale_mle],
     "Bayes (Posterior Mean)": [mu_n, p_post_mean, E_beta]
 })
-comparacao.to_csv("outputs/tabelas/comparacao_mle_bayes.csv", index=False)
+comparacao.to_csv("c:/Users/Julia/Desktop/compsoc/outputs/tabelas/comparacao_mle_bayes.csv", index=False)
 print("\n=== Comparação MLE vs Bayes ===")
 print(comparacao)
 
@@ -285,7 +292,7 @@ plt.hist(test["rtt_download_sec"], bins=30, density=True, alpha=0.5, label="dado
 plt.plot(x, stats.norm.pdf(x, mu_n, np.sqrt(var_pred_rtt)), 'r', label="predictiva bayes")
 plt.legend()
 plt.title("Posterior Predictive RTT")
-plt.savefig("outputs/figuras/predictiva_rtt.png")
+plt.savefig("c:/Users/Julia/Desktop/compsoc/outputs/figuras/predictiva_rtt.png")
 plt.close()
 
 print("\nConcluído. Gráficos e tabelas salvos em 'outputs/'.")
