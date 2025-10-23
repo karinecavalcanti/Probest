@@ -21,7 +21,7 @@ os.makedirs("outputs/tabelas", exist_ok=True)
 # ============================================================
 # 2. CARREGAR E PRÉ-PROCESSAR O DATASET
 # ============================================================
-df = pd.read_csv("data/ndt_tests_tratado.csv")
+df = pd.read_csv("data/ndt_tests_corrigido.csv")
 
 # padronizar colunas (ajuste conforme seu CSV)
 df.columns = [c.strip().lower().replace(" ", "_") for c in df.columns]
@@ -108,7 +108,9 @@ plt.close()
 
 # --- Throughput (Gamma) ---
 th = df["download_mbps"].dropna()
+th = th[th > 0]  # 🔹 remove valores negativos ou zero
 k_mle, loc, scale_mle = stats.gamma.fit(th, floc=0)
+
 print(f"Throughput Gamma MLE: shape={k_mle:.4f}, scale={scale_mle:.4f}, rate={1/scale_mle:.4f}")
 
 # gráfico
