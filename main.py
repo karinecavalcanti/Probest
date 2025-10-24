@@ -23,7 +23,6 @@ df = pd.read_csv("c:/Users/Julia/Desktop/compsoc/data/ndt_tests_corrigido.csv")
 # padronizar colunas (ajuste conforme seu CSV)
 df.columns = [c.strip().lower().replace(" ", "_") for c in df.columns]
 
-
 # limpeza
 num_cols = ["download_throughput_bps", "upload_throughput_bps", "rtt_download_sec", "rtt_upload_sec", "packet_loss_percent"]
 for c in num_cols:
@@ -57,10 +56,8 @@ for v, s in estatisticas.items():
     print(v, s)
 
 
-# estatisticas por cliente e servidor - VERSÃO SIMPLES E DIRETA
 print("\n=== Calculando estatísticas por cliente e servidor ===")
 
-# Usando agg com todas as estatísticas de uma vez
 estatisticas_desejadas = ["mean", "median", "var", "std", lambda x: x.quantile(0.9), lambda x: x.quantile(0.99)]
 
 estat_cliente = df.groupby("client")[vars_interesse].agg(estatisticas_desejadas)
@@ -84,12 +81,6 @@ estat_cliente.to_csv("c:/Users/Julia/Desktop/compsoc/outputs/tabelas/estat_por_c
 estat_servidor.to_csv("c:/Users/Julia/Desktop/compsoc/outputs/tabelas/estat_por_servidor.csv")
 
 
-
-
-# ============================================================
-# 3.1 SELEÇÃO DE CLIENTES/SERVIDORES DISTINTOS
-# ============================================================
-
 # Analisar diferenças entre clientes
 client_stats = df.groupby("client")["download_throughput_bps"].agg(["mean", "std"])
 print("\n=== Estatísticas de throughput por cliente ===")
@@ -101,47 +92,292 @@ cliente_alto = client_stats.nlargest(1, "mean").index[0]
 cliente_baixo = client_stats.nsmallest(1, "mean").index[0]
 
 
-# ============================================================
-# 3.2 GRÁFICOS COMPARATIVOS PARA CLIENTES SELECIONADOS
-# ============================================================
-
 # Filtrar dados dos clientes selecionados
 df_clientes_sel = df[df["client"].isin([cliente_alto, cliente_baixo])]
 
-# Histogramas comparativos
+
+# Histograma cliente 1 separado
+
 for v in vars_interesse:
-    
-    plt.figure(figsize=(10, 6))
-    
-    for cliente in [cliente_alto, cliente_baixo]:
-    
-        dados_cliente = df_clientes_sel[df_clientes_sel["client"] == cliente][v]
-    
-       # dados_log = np.log10(dados_cliente[dados_cliente > 0])  
 
-        plt.hist(dados_cliente, alpha=0.8, label=cliente, bins=20, density=False, edgecolor = 'black')
-
-
-    plt.xlabel("(Download Throughput [bps])")  # eixo X logarítmico
-    plt.ylabel("Frequência")                        # eixo Y = contagem de observações
-    plt.title(f"Histograma Comparativo - {v}")
+    plt.figure(figsize=(6,6))
+    dados_a = df_clientes_sel[df_clientes_sel["client"] == "client01"][v].dropna()
+    
+    plt.hist(dados_a, bins=30, alpha=0.5, edgecolor='black', linewidth=1.2, label=cliente_alto)
+    plt.xlabel(f"{v}")
+    plt.ylabel("Frequência")
+    plt.yscale("log")
     plt.legend()
-    plt.savefig(f"c:/Users/Julia/Desktop/compsoc/outputs/figuras/hist_comp_{v}.png")
-    plt.close()
+    plt.savefig(f"c:/Users/Julia/Desktop/compsoc/outputs/figuras/hist_comp_client01 - {v}.png")
 
-# Boxplots comparativos
+# Histograma cliente 10 separado
+
 for v in vars_interesse:
-    plt.figure(figsize=(8, 6))
-    dados_box = [df_clientes_sel[df_clientes_sel["client"] == c][v] for c in [cliente_alto, cliente_baixo]]
-    plt.boxplot(dados_box, labels=[cliente_alto, cliente_baixo])
-    plt.title(f"Boxplot - {v}")
-    plt.savefig(f"c:/Users/Julia/Desktop/compsoc/outputs/figuras/boxplot_{v}.png")
-    plt.close()
+
+    plt.figure(figsize=(6,6))
+    dados_a = df_clientes_sel[df_clientes_sel["client"] == "client10"][v].dropna()
+    
+    plt.hist(dados_a, bins=30, alpha=0.5, edgecolor='black', linewidth=1.2, label=cliente_alto)
+    plt.xlabel(f"{v}")
+    plt.ylabel("Frequency")
+    plt.yscale("log")
+    plt.legend()
+    plt.savefig(f"c:/Users/Julia/Desktop/compsoc/outputs/figuras/hist_comp_client10 - {v}.png")
+
+#=====HISTOGRAMAS=======
+
+# download_throughput_bps
+plt.figure(figsize=(6, 6))
+todos_dados = df_clientes_sel[df_clientes_sel["client"].isin([cliente_alto, cliente_baixo])][vars_interesse[0]]
+bins = np.histogram_bin_edges(todos_dados, bins=30) 
+for cliente in [cliente_alto, cliente_baixo]:
+    dados_cliente = df_clientes_sel[df_clientes_sel["client"] == cliente][vars_interesse[0]]
+    plt.hist(
+        dados_cliente,
+        bins=bins,
+        alpha=0.6,
+        label=cliente,
+        density=False,
+        edgecolor='black',
+        linewidth=1.2
+    )
+
+plt.xlabel("Dowload Throughput (bps)") 
+plt.ylabel("Frequency")                      
+plt.title(f"Dowload Throughput")
+plt.legend()
+plt.yscale("log")
+plt.savefig(f"c:/Users/Julia/Desktop/compsoc/outputs/figuras/hist_Dowload_Throughput.png")
+plt.close()
+
+# upload_throughput_bps
+plt.figure(figsize=(6, 6))
+todos_dados = df_clientes_sel[df_clientes_sel["client"].isin([cliente_alto, cliente_baixo])][vars_interesse[1]]
+bins = np.histogram_bin_edges(todos_dados, bins=30) 
+for cliente in [cliente_alto, cliente_baixo]:
+    dados_cliente = df_clientes_sel[df_clientes_sel["client"] == cliente][vars_interesse[1]]
+    plt.hist(
+        dados_cliente,
+        bins=bins,
+        alpha=0.6,
+        label=cliente,
+        density=False,
+        edgecolor='black',
+        linewidth=1.2
+    )
+
+plt.xlabel("Upload Throughput (bps)") 
+plt.ylabel("Frequency")                      
+plt.title(f"Upload Throughput")
+plt.legend()
+plt.yscale("log")
+plt.savefig(f"c:/Users/Julia/Desktop/compsoc/outputs/figuras/hist_UploadThroughput.png")
+plt.close()
+
+# rtt_download_sec
+plt.figure(figsize=(6, 6))
+todos_dados = df_clientes_sel[df_clientes_sel["client"].isin([cliente_alto, cliente_baixo])][vars_interesse[2]]
+bins = np.histogram_bin_edges(todos_dados, bins=30) 
+for cliente in [cliente_alto, cliente_baixo]:
+    dados_cliente = df_clientes_sel[df_clientes_sel["client"] == cliente][vars_interesse[2]]
+    plt.hist(
+        dados_cliente,
+        bins=bins,
+        alpha=0.6,
+        label=cliente,
+        density=False,
+        edgecolor='black',
+        linewidth=1.2
+    )
+
+plt.xlabel("RTT Download (s)") 
+plt.ylabel("Frequency")                      
+plt.title(f"RTT Download")
+plt.legend()
+plt.yscale("log")
+plt.savefig(f"c:/Users/Julia/Desktop/compsoc/outputs/figuras/hist_RTT_Download.png")
+plt.close()
+
+# rtt_upload_sec
+plt.figure(figsize=(6, 6))
+todos_dados = df_clientes_sel[df_clientes_sel["client"].isin([cliente_alto, cliente_baixo])][vars_interesse[3]]
+bins = np.histogram_bin_edges(todos_dados, bins=30) 
+for cliente in [cliente_alto, cliente_baixo]:
+    dados_cliente = df_clientes_sel[df_clientes_sel["client"] == cliente][vars_interesse[3]]
+    plt.hist(
+        dados_cliente,
+        bins=bins,
+        alpha=0.6,
+        label=cliente,
+        density=False,
+        edgecolor='black',
+        linewidth=1.2
+    )
+
+plt.xlabel("RTT Upload (s)") 
+plt.ylabel("Frequency")                      
+plt.title(f"RTT Download")
+plt.legend()
+plt.yscale("log")
+plt.savefig(f"c:/Users/Julia/Desktop/compsoc/outputs/figuras/hist_RTT_Upload.png")
+plt.close()
+
+# packet_loss_percent
+plt.figure(figsize=(6, 6))
+todos_dados = df_clientes_sel[df_clientes_sel["client"].isin([cliente_alto, cliente_baixo])][vars_interesse[4]]
+bins = np.histogram_bin_edges(todos_dados, bins=30) 
+for cliente in [cliente_alto, cliente_baixo]:
+    dados_cliente = df_clientes_sel[df_clientes_sel["client"] == cliente][vars_interesse[4]]
+    plt.hist(
+        dados_cliente,
+        bins=bins,
+        alpha=0.6,
+        label=cliente,
+        density=False,
+        edgecolor='black',
+        linewidth=1.2
+    )
+
+plt.xlabel("Packet Loss Percent (%)") 
+plt.ylabel("Frequency")                      
+plt.title(f"Packet Loss Percent")
+plt.legend()
+plt.yscale("log")
+plt.savefig(f"c:/Users/Julia/Desktop/compsoc/outputs/figuras/hist_Packet_Loss_Percent.png")
+plt.close()
+
+#=====BOXPLOT=======
+
+# Boxplot download_throughput_bps
+plt.figure(figsize=(6, 5))
+
+dados_box = [
+    df_clientes_sel[df_clientes_sel["client"] == cliente_alto][vars_interesse[0]],
+    df_clientes_sel[df_clientes_sel["client"] == cliente_baixo][vars_interesse[0]]
+]
+
+plt.boxplot(
+    dados_box,
+    labels=[cliente_alto, cliente_baixo],
+    patch_artist=True,
+    boxprops=dict(facecolor='plum', color='black'),
+    medianprops=dict(color='orange', linewidth=1.5),
+    whiskerprops=dict(color='black'),
+    capprops=dict(color='black'),
+    flierprops=dict(marker='o', markerfacecolor='none', markeredgecolor='black', markersize=4)
+)
+
+plt.ylabel("Dowload Throughput (bps)")
+plt.title("Dowload Throughput")
+plt.grid(axis='y', linestyle='--', alpha=0.6)
+plt.tight_layout()
+plt.savefig("c:/Users/Julia/Desktop/compsoc/outputs/figuras/boxplot_Dowload_Throughput.png")
+
+# Boxplot upload_throughput_bps
+plt.figure(figsize=(6, 5))
+
+dados_box = [
+    df_clientes_sel[df_clientes_sel["client"] == cliente_alto][vars_interesse[1]],
+    df_clientes_sel[df_clientes_sel["client"] == cliente_baixo][vars_interesse[1]]
+]
+
+plt.boxplot(
+    dados_box,
+    labels=[cliente_alto, cliente_baixo],
+    patch_artist=True,
+    boxprops=dict(facecolor='plum', color='black'),
+    medianprops=dict(color='orange', linewidth=1.5),
+    whiskerprops=dict(color='black'),
+    capprops=dict(color='black'),
+    flierprops=dict(marker='o', markerfacecolor='none', markeredgecolor='black', markersize=4)
+)
+
+plt.ylabel("Upload Throughput (bps)")
+plt.title("Upload Throughput")
+plt.grid(axis='y', linestyle='--', alpha=0.6)
+plt.tight_layout()
+plt.savefig("c:/Users/Julia/Desktop/compsoc/outputs/figuras/boxplot_Upload_Throughput.png")
+
+# Boxplot rtt_download_sec
+plt.figure(figsize=(6, 5))
+
+dados_box = [
+    df_clientes_sel[df_clientes_sel["client"] == cliente_alto][vars_interesse[2]],
+    df_clientes_sel[df_clientes_sel["client"] == cliente_baixo][vars_interesse[2]]
+]
+
+plt.boxplot(
+    dados_box,
+    labels=[cliente_alto, cliente_baixo],
+    patch_artist=True,
+    boxprops=dict(facecolor='plum', color='black'),
+    medianprops=dict(color='orange', linewidth=1.5),
+    whiskerprops=dict(color='black'),
+    capprops=dict(color='black'),
+    flierprops=dict(marker='o', markerfacecolor='none', markeredgecolor='black', markersize=4)
+)
+
+plt.ylabel("RTT Download (s)")
+plt.title("RTT Download")
+plt.grid(axis='y', linestyle='--', alpha=0.6)
+plt.tight_layout()
+plt.savefig("c:/Users/Julia/Desktop/compsoc/outputs/figuras/boxplot_RTT_Download.png")
+
+# Boxplot rtt_upload_sec
+plt.figure(figsize=(6, 5))
+
+dados_box = [
+    df_clientes_sel[df_clientes_sel["client"] == cliente_alto][vars_interesse[3]],
+    df_clientes_sel[df_clientes_sel["client"] == cliente_baixo][vars_interesse[3]]
+]
+
+plt.boxplot(
+    dados_box,
+    labels=[cliente_alto, cliente_baixo],
+    patch_artist=True,
+    boxprops=dict(facecolor='plum', color='black'),
+    medianprops=dict(color='orange', linewidth=1.5),
+    whiskerprops=dict(color='black'),
+    capprops=dict(color='black'),
+    flierprops=dict(marker='o', markerfacecolor='none', markeredgecolor='black', markersize=4)
+)
+
+plt.ylabel("RTT Upload (s)")
+plt.title("RTT Upload")
+plt.grid(axis='y', linestyle='--', alpha=0.6)
+plt.tight_layout()
+plt.savefig("c:/Users/Julia/Desktop/compsoc/outputs/figuras/boxplot_RTT_Upload.png")
+
+# Boxplot packet_loss_percent
+plt.figure(figsize=(6, 5))
+
+dados_box = [
+    df_clientes_sel[df_clientes_sel["client"] == cliente_alto][vars_interesse[4]],
+    df_clientes_sel[df_clientes_sel["client"] == cliente_baixo][vars_interesse[4]]
+]
+
+plt.boxplot(
+    dados_box,
+    labels=[cliente_alto, cliente_baixo],
+    patch_artist=True,
+    boxprops=dict(facecolor='plum', color='black'),
+    medianprops=dict(color='orange', linewidth=1.5),
+    whiskerprops=dict(color='black'),
+    capprops=dict(color='black'),
+    flierprops=dict(marker='o', markerfacecolor='none', markeredgecolor='black', markersize=4)
+)
+
+plt.ylabel("Packet Loss Percent (%)")
+plt.title("Packet Loss Percent")
+plt.grid(axis='y', linestyle='--', alpha=0.6)
+plt.tight_layout()
+plt.savefig("c:/Users/Julia/Desktop/compsoc/outputs/figuras/boxplot_Packet_Loss_Percent.png")
+
 
 # Scatter plots comparativos
 plt.figure(figsize=(10, 6))
-cores = {"cliente_alto": "blue", "cliente_baixo": "red"}
-for cliente, cor in zip([cliente_alto, cliente_baixo], ["blue", "red"]):
+cores = {"cliente_alto": "blue", "cliente_baixo": "orange"}
+for cliente, cor in zip([cliente_alto, cliente_baixo], ["blue", "orange"]):
     dados_cliente = df_clientes_sel[df_clientes_sel["client"] == cliente]
     plt.scatter(dados_cliente["rtt_download_sec"], 
                 dados_cliente["download_throughput_bps"], 
@@ -149,7 +385,7 @@ for cliente, cor in zip([cliente_alto, cliente_baixo], ["blue", "red"]):
 plt.xlabel("RTT Download (sec)")
 plt.ylabel("Throughput Download (bps)")
 plt.legend()
-plt.title("Scatter RTT vs Throughput - Clientes Selecionados")
+plt.title("RTT Download vs Throughput Download")
 plt.savefig("c:/Users/Julia/Desktop/compsoc/outputs/figuras/scatter_clientes_sel.png")
 plt.close()
 
