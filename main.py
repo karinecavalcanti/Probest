@@ -2,7 +2,6 @@
 Projeto COE241 / COS868 - Probest - Parte 1
 Análise Estatística, MLE e Inferência Bayesiana em medições de rede.
 """
-
 # ============================================================
 # 1. IMPORTAÇÕES E CONFIGURAÇÃO
 # ============================================================
@@ -26,7 +25,7 @@ except FileNotFoundError:
     print("ERRO: Arquivo 'ndt_tests_corrigido.csv' não encontrado. Verifique o caminho.")
     exit()
 
-# padronizar colunas (ajuste conforme seu CSV)
+# padronizar colunas
 df.columns = [c.strip().lower().replace(" ", "_") for c in df.columns]
 
 # limpeza
@@ -38,7 +37,7 @@ df = df.dropna(subset=num_cols)
 print("Dimensões do dataset:", df.shape)
 print(df.head())
 
-# Seleção de clientes (necessário para Seção 4 e 5)
+# Seleção de clientes 
 client_stats = df.groupby("client")["download_throughput_bps"].agg(["mean", "std"])
 cliente_alto = client_stats.nlargest(1, "mean").index[0]
 cliente_baixo = client_stats.nsmallest(1, "mean").index[0]
@@ -106,7 +105,6 @@ print("\n=== Estatísticas de throughput por cliente ===")
 print(client_stats.sort_values("mean", ascending=False))
 
 # Selecionar dois clientes com comportamentos distintos
-# Exemplo: maior vs menor throughput, ou maior vs menor variabilidade
 cliente_alto = client_stats.nlargest(1, "mean").index[0]
 cliente_baixo = client_stats.nsmallest(1, "mean").index[0]
 
@@ -235,7 +233,7 @@ for cliente in [cliente_alto, cliente_baixo]:
 
 plt.xlabel("RTT Upload (s)") 
 plt.ylabel("Frequency")                      
-plt.title(f"RTT Download")
+plt.title(f"RTT Upload")
 plt.legend()
 plt.yscale("log")
 plt.savefig(f"outputs/figuras/hist_RTT_Upload.png")
@@ -474,9 +472,8 @@ for cliente in [cliente_alto, cliente_baixo]:
             x = np.linspace(x_min, x_max, 200)
             pdf = lognorm.pdf(x, s, loc=loc, scale=scale)
             
-            # >>> APLICANDO .3F AQUI <<<
             legenda_mle = f"LogNormal MLE: µ={mu_log:.3f}, σ={sigma_log:.3f}"
-            print(f"  θˆMLE (s, scale): ({s:.3f}, {scale:.3f})") # Alterado para 3 casas
+            print(f"   θˆMLE (s, scale): ({s:.3f}, {scale:.3f})") 
             
         elif modelo == "Gamma":
             # --- MLE de Gamma (Throughput) ---
@@ -489,9 +486,9 @@ for cliente in [cliente_alto, cliente_baixo]:
             x_min, x_max = series_pos.min(), series_pos.max()
             x = np.linspace(x_min, x_max, 200)
             pdf = gamma.pdf(x, k, loc=loc, scale=scale)
-             
-            legenda_mle = f"Gamma MLE: k={k:.3f}, θ̂={scale:.2e}" # <-- FORÇADO .2e para 3.13e+08
-            print(f"  θˆMLE (k, θ̂): ({k:.3f}, {scale:.2e})") # Também formatado no console
+              
+            legenda_mle = f"Gamma MLE: k={k:.3f}, θ̂={scale:.2e}" 
+            print(f"   θˆMLE (k, θ̂): ({k:.3f}, {scale:.2e})") 
 
         elif is_beta:
             # --- MLE de Beta (Packet Loss) ---
@@ -505,45 +502,41 @@ for cliente in [cliente_alto, cliente_baixo]:
             x_prop = np.linspace(0.001, 0.999, 200) 
             pdf_prop = beta.pdf(x_prop, alpha, beta_param)
             
-            # >>> APLICANDO .3F AQUI <<<
             legenda_mle = f"Beta MLE: α={alpha:.3f}, β={beta_param:.3f}"
-            print(f"  θˆMLE (α, β): ({alpha:.3f}, {beta_param:.3f})") # Alterado para 3 casas
+            print(f"   θˆMLE (α, β): ({alpha:.3f}, {beta_param:.3f})")
 
-        # ===================================
-        # AVALIAÇÃO DO AJUSTE (GRÁFICOS)
-        # ===================================
         
-        # Define os rótulos de eixo para o gráfico atual (usa nome_eixo_x definido na Seção 3)
+        fig, axes = plt.subplots(1, 2, figsize=(14, 6)) 
+        
+        # Define os rótulos de eixo para o gráfico atual 
         label_x = nome_eixo_x.get(variavel, variavel)
         label_y_hist = "Densidade de Probabilidade"
         label_y_qq = "Valores Ordenados"
         
         # --------------------------------------------------------
-        # 1️⃣ HISTOGRAMA + FUNÇÃO DENSIDADE (PDF)
+        # SUBPLOT 1: HISTOGRAMA + FUNÇÃO DENSIDADE (PDF)
         # --------------------------------------------------------
-        plt.figure(figsize=(10, 6)) 
-        plt.hist(series, bins=30, density=True, alpha=0.6, label="Dados reais (histograma)")
+        ax_hist = axes[0]
+        ax_hist.hist(series, bins=30, density=True, alpha=0.6, label="Dados reais (histograma)")
 
         if is_beta:
             # Plota a PDF da Beta (escala 0-100)
-            plt.plot(x_prop * 100, pdf_prop / 100.0, 'r-', lw=2, label=legenda_mle)
+            ax_hist.plot(x_prop * 100, pdf_prop / 100.0, 'r-', lw=2, label=legenda_mle)
         else:
             # Plota a PDF de LogNormal ou Gamma
-            plt.plot(x, pdf, 'r-', lw=2, label=legenda_mle)
+            ax_hist.plot(x, pdf, 'r-', lw=2, label=legenda_mle)
 
-        plt.title(f"Histograma + PDF ({modelo}) - {variavel} - {cliente}")
-        plt.xlabel(label_x)
-        plt.ylabel(label_y_hist)
-        # Ajuste de Legenda
-        plt.legend(loc='upper center', bbox_to_anchor=(0.5, -0.15), fancybox=True, shadow=True, ncol=1, fontsize=9)
-        plt.tight_layout(rect=[0, 0.1, 1, 1])
-        plt.savefig(f"outputs/figuras/mle/histpdf_{cliente}_{variavel}.png")
-        plt.close()
+        ax_hist.set_title(f"Histograma + PDF ({modelo})", fontsize=12)
+        ax_hist.set_xlabel(label_x, fontsize=10)
+        ax_hist.set_ylabel(label_y_hist, fontsize=10)
+        ax_hist.legend(loc='upper right', fontsize=9)
+        ax_hist.grid(axis='y', linestyle='--', alpha=0.6)
+
 
         # --------------------------------------------------------
-        # 2️⃣ QQ PLOT - Dados vs Quantis Teóricos
+        # SUBPLOT 2: QQ PLOT - Dados vs Quantis Teóricos
         # --------------------------------------------------------
-        plt.figure(figsize=(6, 6))
+        ax_qq = axes[1]
         
         dist_map = {
             "LogNormal": lognorm,
@@ -551,6 +544,9 @@ for cliente in [cliente_alto, cliente_baixo]:
             "Beta": beta
         }
         dist_obj = dist_map.get(modelo)
+        
+        sparams_plot = None
+        series_plot = None
         
         if modelo == "LogNormal":
             s, _, _ = parametros_mle[cliente][variavel]
@@ -565,36 +561,80 @@ for cliente in [cliente_alto, cliente_baixo]:
             sparams_plot = (alpha, beta_param)
             series_plot = series_prop 
 
-        stats.probplot(series_plot, dist=dist_obj, sparams=sparams_plot, plot=plt)
-        plt.title(f"QQ Plot - {variavel} ({modelo}) - {cliente}")
+        # stats.probplot plota diretamente no eixo ax_qq
+        stats.probplot(series_plot, dist=dist_obj, sparams=sparams_plot, plot=ax_qq)
+        ax_qq.set_title(f"QQ Plot ({modelo})", fontsize=12)
 
-        plt.xlabel("Quantis Teóricos")
-        plt.ylabel(label_y_qq)
-        plt.tight_layout()
-        plt.savefig(f"outputs/figuras/mle/qqplot_{cliente}_{variavel}.png")
-        plt.close()
+        ax_qq.set_xlabel("Quantis Teóricos", fontsize=10)
+        ax_qq.set_ylabel(label_y_qq, fontsize=10)
+        
+        # Título geral para a figura inteira
+        fig.suptitle(f"Ajuste MLE - {variavel} - Cliente: {cliente}", fontsize=14, fontweight='bold')
+        
+        # Ajusta o layout para evitar sobreposição
+        plt.tight_layout(rect=[0, 0, 1, 0.96]) # Ajuste para acomodar o suptitle
 
-print("Gráficos MLE gerados e salvos em 'outputs/figuras/mle/'.")   
-            
+        plt.savefig(f"outputs/figuras/mle/ajuste_mle_{cliente}_{variavel}.png")
+        plt.close(fig) # Fecha a figura para liberar memória
 
+print("Gráficos MLE (Histograma+PDF e QQ Plot lado a lado) gerados e salvos em 'outputs/figuras/mle/'.")
 
 # ============================================================
-# 5. INFERÊNCIA BAYESIANA (ANALÍTICA CONJUGADA) — CORRIGIDA
+# FUNÇÃO AUXILIAR PARA ESTIMAR FORMA DA GAMMA
+# ============================================================
+
+def estimate_gamma_shape_k(series):
+    """Estima o parâmetro de forma (k) do Gamma usando Method of Moments"""
+    try:
+        mean_val = series.mean()
+        var_val = series.var(ddof=1)
+        
+        if var_val > 0:
+            k_estimate = (mean_val ** 2) / var_val
+            return max(k_estimate, 0.1)
+        else:
+            return 1.0
+    except Exception:
+        return 1.0
+
+# ============================================================
+# 5. INFERÊNCIA BAYESIANA (ANALÍTICA CONJUGADA)
 # ============================================================
 print("\n=== 5. INFERÊNCIA BAYESIANA (ANALÍTICA CONJUGADA) ===")
-print("Modelos usados: LogNormal (Normal-Normal no log-space), Gamma (Gama-Gama), Beta (Beta-Binomial).")
+print("Modelos usados: LogNormal (Normal-Normal no log-space), Gamma (Gama-Gama), Beta (Beta-Binomial Aproximado).")
 
-# Divisão treino/teste
+# Definir priors conjugadas REALISTAS
+priors_conjugadas = {
+    "LogNormal": {
+        "tipo": "Normal-Normal",
+        "prior_mu": "Normal", 
+        "hiperparametros": {"mu0": -3.0, "tau0_2": 1.0},
+    },
+    "Gamma": {
+        "tipo": "Gamma-Gamma",
+        "prior_beta": "Gamma", 
+        "hiperparametros": {"alpha0": 2.0, "beta0": 2e-8},
+    },
+    "Beta": {
+        "tipo": "Beta-Binomial", 
+        "prior_p": "Beta", 
+        "hiperparametros": {"alpha0": 1, "beta0": 1}, 
+    }
+}
+
+print("\n=== PRIORS CONJUGADAS DEFINIDAS ===")
+for modelo, config in priors_conjugadas.items():
+    print(f"{modelo}: {config['tipo']}")
+    print(f" Hiperparâmetros: {config['hiperparametros']}")
+    print()
+
+# Requisitos: Divisão treino/teste (70/30)
 train, test = train_test_split(df, test_size=0.3, random_state=42)
 resultados_mle_comparacao = {}
 
-# Função auxiliar
-def estimate_gamma_shape_k(series):
-    try:
-        k, _, _ = stats.gamma.fit(series[series > 0], floc=0)
-        return k
-    except Exception:
-        return 1.0
+# --- PARÂMETRO NECESSÁRIO PARA CORREÇÃO DO PACKET LOSS ---
+# O modelo Beta-Binomial exige contagens inteiras. Assumimos um número razoável de pacotes por teste.
+N_PACKETS_ASSUMIDOS = 1000 # Assumindo 1000 pacotes em cada medição de perda
 
 for cliente in [cliente_alto, cliente_baixo]:
     print(f"\n--- CLIENTE: {cliente} ---")
@@ -603,37 +643,60 @@ for cliente in [cliente_alto, cliente_baixo]:
     mle_params = parametros_mle.get(cliente, {})
 
     # ================================================================
-    # Caso A: Packet Loss (Beta-Binomial)
+    # Caso A: Packet Loss (Beta-Binomial) 
     # ================================================================
     loss_var = "packet_loss_percent"
-    loss_train = train_c[loss_var].dropna() / 100.0  # converter para [0,1]
+    loss_train = train_c[loss_var].dropna() / 100.0 # converter para [0,1]
+    
+    # Prior (Uniforme = Beta(1,1))
+    prior_config = priors_conjugadas["Beta"]
+    a0_loss = prior_config["hiperparametros"]["alpha0"] # 1.0
+    b0_loss = prior_config["hiperparametros"]["beta0"]  # 1.0
 
-    # Priors levemente informativas: Beta(1,1)
-    a0_loss, b0_loss = 1.0, 1.0
+    # O modelo Beta-Binomial conjuga a probabilidade de sucesso p.
+    # Assumimos N_PACKETS_ASSUMIDOS pacotes por teste.
+    
+    # Contagem de pacotes perdidos em cada teste
+    contagem_perdas = np.round(loss_train * N_PACKETS_ASSUMIDOS)
+    
+    # Contagens agregadas totais
+    S_sucessos = contagem_perdas.sum() # Total de pacotes perdidos (Sucessos no modelo Binomial)
+    N_total_testes = len(loss_train) * N_PACKETS_ASSUMIDOS # Total de pacotes enviados
+    F_falhas = N_total_testes - S_sucessos # Total de pacotes não perdidos (Falhas)
 
-    # Somatório direto em proporções (sem N_ensaios artificial)
-    an_loss = a0_loss + (loss_train.sum() * len(loss_train))
-    bn_loss = b0_loss + (len(loss_train) - loss_train.sum() * len(loss_train))
+    an_loss = a0_loss + S_sucessos
+    bn_loss = b0_loss + F_falhas
 
-    # Posterior esperada
+    # 1. Média Posterior E[p|x] (Média da Probabilidade de Perda)
     p_post_mean = an_loss / (an_loss + bn_loss)
-    E_pred_loss = p_post_mean * 100.0
-    mean_test_loss = test_c[loss_var].mean()
+    # 2. Variância Posterior Var[p|x]
+    var_post_p = (an_loss * bn_loss) / ((an_loss + bn_loss)**2 * (an_loss + bn_loss + 1))
+    
+    # 3. Média Preditiva E[Y_novo|y] = E[p|x]
+    E_pred_loss = p_post_mean 
+    # 4. Variância Preditiva Var[Y_novo|y]
+    var_pred_loss = var_post_p 
+    
+    # 5. Média Real (Teste)
+    mean_test_loss = test_c[loss_var].mean() / 100.0 # Converter para proporção
+    # 6. Variância Real (Teste)
+    var_test_loss = test_c[loss_var].var(ddof=1) / (100.0**2) # Variância em proporção
 
-    print("\n[A] Packet Loss (Beta-Binomial Corrigido):")
-    print(f"  PRIOR: Beta(α0={a0_loss:.1f}, β0={b0_loss:.1f}) (Uniforme)")
-    print(f"  POSTERIOR: Beta(αn={an_loss:.2f}, βn={bn_loss:.2f})")
-    print(f"  E[p|x]: {p_post_mean:.6f} → {E_pred_loss:.4f}% preditivo")
-    print(f"  Média Real (Teste): {mean_test_loss:.4f}%")
-
-    alpha_mle, beta_mle, _, _ = mle_params.get(loss_var, (1, 1, 0, 1))
-    E_mle_loss = (alpha_mle / (alpha_mle + beta_mle)) * 100.0
+    print(f"\n[A] Packet Loss:")
+    print(f" Prior: {prior_config['tipo']} | Assumindo N_PACKETS={N_PACKETS_ASSUMIDOS}")
+    print(f" Hiperparâmetros: {prior_config['hiperparametros']}")
+    print(f" E[p|x]: {p_post_mean:.6f} | Var[p|x]: {var_post_p:.2e}")
+    print(f" E Preditiva: {E_pred_loss:.6f} | Var Preditiva: {var_pred_loss:.2e}") # p_post_mean e var_post_p são para proporção [0,1]
+    print(f" E Real (Teste): {mean_test_loss:.6f} | Var Real (Teste): {var_test_loss:.2e}") # Usado proporção [0,1] para consistência interna
 
     resultados_mle_comparacao[cliente, loss_var] = {
-        "E_MLE": E_mle_loss,
-        "E_Bayes": E_pred_loss,
-        "Média Teste": mean_test_loss,
-        "Parâmetro": "p (Prob. Média)"
+        "Parâmetro": "p (Prob. Média)",
+        "E_Post": p_post_mean,
+        "Var_Post": var_post_p,
+        "E_Pred": E_pred_loss,
+        "Var_Pred": var_pred_loss,
+        "E_Teste": mean_test_loss,
+        "Var_Teste": var_test_loss
     }
 
     # ================================================================
@@ -644,109 +707,230 @@ for cliente in [cliente_alto, cliente_baixo]:
         r_train_log = np.log(r_train[r_train > 0])
 
         n = len(r_train_log)
+        if n == 0:
+            continue
+            
         rbar_log = r_train_log.mean()
 
-        # Obter σ e μ no log-space a partir do MLE
+        # Parâmetros fixados do MLE
         s_mle, _, scale_mle = mle_params.get(rtt_var, (1, 0, 1))
-        mu_mle = np.log(scale_mle)
-        sigma2_log = s_mle**2
+        sigma2_log = s_mle**2 
+        
+        if sigma2_log == 0 or sigma2_log < 1e-10:
+             sigma2_log = r_train_log.var(ddof=1)
+        if sigma2_log == 0: 
+             continue
 
-        # Prior centrada no MLE e fracamente informativa
-        mu0 = mu_mle
-        tau0_2 = 1.0  # menor do que 1e6 → ainda "larga", mas numérica estável
+        prior_config = priors_conjugadas["LogNormal"]
+        mu0 = prior_config["hiperparametros"]["mu0"]# -3.0
+        tau0_2 = prior_config["hiperparametros"]["tau0_2"] # 1.0
 
-        # Posterior
+        # Posterior (do parâmetro mu)
         tau_n2 = 1 / (1/tau0_2 + n/sigma2_log)
         mu_n = tau_n2 * (mu0/tau0_2 + n*rbar_log/sigma2_log)
-
-        # Média preditiva no espaço original
+        
+        # 1. Média Posterior E[Y|x] (no espaço original)
+        E_post_orig = np.exp(mu_n + 0.5 * tau_n2)
+        # 2. Variância Posterior Var[Y|x] (no espaço original)
+        Var_post_orig = (np.exp(tau_n2) - 1) * np.exp(2*mu_n + tau_n2)
+        
+        # 3. Média Preditiva E[R_novo|r]
         var_pred_rtt_log = sigma2_log + tau_n2
         E_pred_rtt = np.exp(mu_n + 0.5 * var_pred_rtt_log)
+        
+        # 4. Variância Preditiva Var[R_novo|r]
+        var_pred_rtt = (E_pred_rtt**2) * (np.exp(var_pred_rtt_log) - 1)
 
+        # 5. Média Real (Teste)
         mean_test_rtt = test_c[rtt_var].mean()
+        # 6. Variância Real (Teste)
         var_test_rtt = test_c[rtt_var].var(ddof=1)
 
-        E_mle_rtt = np.exp(mu_mle + 0.5 * sigma2_log)
-
-        print(f"\n[B] {rtt_var} (LogNormal / Normal-Normal Corrigido):")
-        print(f"  MLE: μ_log={mu_mle:.4f}, σ_log²={sigma2_log:.6f}")
-        print(f"  PRIOR: Normal(µ0={mu0:.4f}, τ0²={tau0_2:.4f})")
-        print(f"  POSTERIOR: Normal(µn={mu_n:.4f}, τn²={tau_n2:.6f})")
-        print(f"  E[R_novo|r]: {E_pred_rtt:.4f}s | Média Teste: {mean_test_rtt:.4f}s")
+        print(f"\n[B] {rtt_var}:")
+        print(f" Prior: {prior_config['tipo']}")
+        print(f" Hiperparâmetros: {prior_config['hiperparametros']}")
+        print(f" E Posterior: {E_post_orig:.6f}s | Var Posterior: {Var_post_orig:.2e}")
+        print(f" E Preditiva: {E_pred_rtt:.6f}s | Var Preditiva: {var_pred_rtt:.2e}")
+        print(f" E Real (Teste): {mean_test_rtt:.6f}s | Var Real (Teste): {var_test_rtt:.2e}")
 
         resultados_mle_comparacao[cliente, rtt_var] = {
-            "E_MLE": E_mle_rtt,
-            "E_Bayes": E_pred_rtt,
-            "Média Teste": mean_test_rtt,
-            "Parâmetro": "Média E[Y]"
+            "Parâmetro": "Média E[Y]",
+            "E_Post": E_post_orig, 
+            "Var_Post": Var_post_orig, 
+            "E_Pred": E_pred_rtt,
+            "Var_Pred": var_pred_rtt,
+            "E_Teste": mean_test_rtt,
+            "Var_Teste": var_test_rtt
         }
 
     # ================================================================
-    # Caso C: Throughput (Gamma-Gamma)
+    # Caso C: Throughput (Gamma-Gamma) 
     # ================================================================
     for tp_var in ["download_throughput_bps", "upload_throughput_bps"]:
         y_train = train_c[tp_var].dropna()
+        if len(y_train) == 0:
+            continue
+            
         y_sum = y_train.sum()
+        
+        # k fixo (estimado por MLE) 
+        k_fixo = estimate_gamma_shape_k(y_train) 
+        if k_fixo <= 0: 
+            continue
 
-        k_fixo = estimate_gamma_shape_k(y_train)  # shape (k)
-        a0_gama, b0_gama = 1.0, 0.001  # prior leve
+        # Prior (Gamma)
+        prior_config = priors_conjugadas["Gamma"]
+        a0_gama = prior_config["hiperparametros"]["alpha0"] # 2.0
+        b0_gama = prior_config["hiperparametros"]["beta0"]  # 2e-8
 
         # Posterior (em termos de taxa β)
         an_gama = a0_gama + len(y_train) * k_fixo
-        bn_gama = b0_gama + y_sum  # coerente com β = 1/θ
+        bn_gama = b0_gama + y_sum
 
-        # Média preditiva no espaço original
-        E_pred_tp = k_fixo * (bn_gama / (an_gama - 1)) if an_gama > 1 else np.nan
-        var_pred_tp = (
-            (k_fixo * bn_gama * (an_gama + k_fixo - 1))
-            / ((an_gama - 1) ** 2 * (an_gama - 2))
-            if an_gama > 2 else np.nan
-        )
+        # Média e Variância do parâmetro de taxa beta
+        E_post_beta = an_gama / bn_gama
+        Var_post_beta = an_gama / (bn_gama**2)
+        
+        # 3. Média Preditiva E[Y_novo|y]
+        if an_gama > 1:
+            E_pred_tp = k_fixo / E_post_beta 
+        else:
+            E_pred_tp = np.nan
+            
+        # 4. Variância Preditiva Var[Y_novo|y]
+        if an_gama > 2:
+            var_pred_tp = (
+                (k_fixo * bn_gama * (an_gama + k_fixo - 1))
+                / ((an_gama - 1) ** 2 * (an_gama - 2))
+            )
+        else:
+            var_pred_tp = np.nan
 
+        # 5. Média Real (Teste)
         mean_test_tp = test_c[tp_var].mean()
+        # 6. Variância Real (Teste)
         var_test_tp = test_c[tp_var].var(ddof=1)
 
-        k_mle, _, scale_mle = mle_params.get(tp_var, (1, 0, 1))
-        E_mle_tp = k_mle * scale_mle
-
-        print(f"\n[C] {tp_var} (Gamma-Gamma Corrigido, k={k_fixo:.3f}):")
-        print(f"  PRIOR: Gamma(a0={a0_gama:.1f}, b0={b0_gama:.3f})")
-        print(f"  POSTERIOR: Gamma(an={an_gama:.2f}, bn={bn_gama:.2f})")
-        print(f"  E[Y_novo|y]: {E_pred_tp:.2f} | Média Teste: {mean_test_tp:.2f}")
-        print(f"  Var Preditiva: {var_pred_tp:.2e} | Var Real: {var_test_tp:.2e}")
+        print(f"\n[C] {tp_var} (k={k_fixo:.3f}):")
+        print(f" Prior: {prior_config['tipo']}")
+        print(f" Hiperparâmetros: {prior_config['hiperparametros']}")
+        print(f" E[β|x]: {E_post_beta:.2e} | Var[β|x]: {Var_post_beta:.2e}")
+        print(f" E Preditiva: {E_pred_tp:.2f} | Var Preditiva: {var_pred_tp:.2e}")
+        print(f" E Real (Teste): {mean_test_tp:.2f} | Var Real (Teste): {var_test_tp:.2e}")
 
         resultados_mle_comparacao[cliente, tp_var] = {
-            "E_MLE": E_mle_tp,
-            "E_Bayes": E_pred_tp,
-            "Média Teste": mean_test_tp,
-            "Parâmetro": "Média E[Y]"
+            "Parâmetro": "Taxa Beta",
+            "E_Post": E_post_beta, 
+            "Var_Post": Var_post_beta, 
+            "E_Pred": E_pred_tp,
+            "Var_Pred": var_pred_tp,
+            "E_Teste": mean_test_tp,
+            "Var_Teste": var_test_tp
         }
-
-
+        
 # ============================================================
-# 6. COMPARAÇÃO MLE vs BAYES (E Geração da Tabela Final)
+# 6. COMPARAÇÃO MLE vs BAYES 
 # ============================================================
-# ... (O código desta seção gera a tabela final para o relatório)
+print("\n" + "="*80)
+print("COMPARAÇÃO MLE vs BAYES - RESULTADOS ORGANIZADOS (CORREÇÃO: MÉDIA VS MÉDIA)")
+print("="*80)
 
-# ============================================================
-# 6. COMPARAÇÃO MLE vs BAYES
-# ============================================================
-print("\n=== 6. COMPARAÇÃO MLE vs BAYES ===")
+comparacao_mle_bayes_list = []
 
-comparacoes_list = []
-for (cliente, var), data in resultados_mle_comparacao.items():
-    comparacoes_list.append({
-        "Cliente": cliente,
-        "Variável": var,
-        "Parâmetro": data["Parâmetro"],
-        "E_MLE (do Modelo Ajustado)": data["E_MLE"],
-        "E_Bayes (Preditivo)": data["E_Bayes"],
-        "Média Teste (Real)": data["Média Teste"]
-    })
+for cliente in [cliente_alto, cliente_baixo]:
+    print(f"\n{' CLIENTE: ' + cliente + ' ':=^80}")
+    
+    # Cabeçalho da tabela
+    print(f"\n{'Variável':<25} {'MLE (Média)':<15} {'Bayes (E_Pred)':<15} {'Diferença':<12} {'Efeito Prior':<15}")
+    print("-" * 80)
+    
+    for variavel in vars_interesse:
+        # Obter parâmetros MLE
+        mle_params_cliente = parametros_mle.get(cliente, {})
+        
+        if variavel in mle_params_cliente:
+            params_mle = mle_params_cliente[variavel]
+            
+            # 1. Calcular ESTIMATIVA PONTUAL MLE (MÉDIA DA DISTRIBUIÇÃO)
+            if "rtt" in variavel:
+                s, loc, scale = params_mle
+                # Média E[Y] = exp(mu_log + sigma_log^2 / 2)
+                theta_mle = lognorm.mean(s, loc, scale)
+                unidade = "s"
+            elif "throughput" in variavel:
+                k, loc, scale = params_mle
+                # Média E[Y] = k * scale
+                theta_mle = gamma.mean(k, loc, scale)
+                unidade = "bps"
+            elif "loss" in variavel:
+                alpha, beta_p, loc, scale = params_mle
+                # Média E[p] = alpha / (alpha + beta) * 100
+                theta_mle = beta.mean(alpha, beta_p, loc, scale) * 100
+                unidade = "%"
+            else:
+                theta_mle = np.nan
+                unidade = ""
+            
+            # Obter estimativa Bayesiana (E_Posterior da seção 5)
+            bayes_data = resultados_mle_comparacao.get((cliente, variavel), {})
+            
+            # 2. Obter ESTIMATIVA PONTUAL BAYES (MÉDIA DA POSTERIOR DA VARIÁVEL)
+            if "rtt" in variavel:
+                # E_Post (E[Y|x]) no espaço original
+                theta_bayes = bayes_data.get("E_Post", np.nan) 
+            elif "throughput" in variavel:
+                theta_bayes = bayes_data.get("E_Pred", np.nan) 
+            elif "loss" in variavel:
+                # E_Post (E[p|x]) em Proporção, converter para %
+                theta_bayes = bayes_data.get("E_Post", np.nan) * 100
+            else:
+                theta_bayes = np.nan
+            
+            
+            if not np.isnan(theta_mle) and not np.isnan(theta_bayes):
+                diff_abs = abs(theta_bayes - theta_mle)
+                diff_rel = (diff_abs / theta_mle) * 100 if theta_mle != 0 else np.nan
+                
+                # Classificar efeito da prior
+                if diff_rel < 5:
+                    efeito_prior = "Pequeno"
+                elif diff_rel < 20:
+                    efeito_prior = "Moderado"
+                else:
+                    efeito_prior = "Grande"
+                
+                # Formatar valores para exibição (Ajustado para maior precisão em RTT)
+                if "throughput" in variavel:
+                    theta_mle_str = f"{theta_mle:.2e}"
+                    theta_bayes_str = f"{theta_bayes:.2e}"
+                    diff_str = f"{diff_abs:.2e}"
+                elif "loss" in variavel:
+                    theta_mle_str = f"{theta_mle:.4f}"
+                    theta_bayes_str = f"{theta_bayes:.4f}"
+                    diff_str = f"{diff_abs:.4f}"
+                else: # RTT
+                    theta_mle_str = f"{theta_mle:.6f}"
+                    theta_bayes_str = f"{theta_bayes:.6f}"
+                    diff_str = f"{diff_abs:.6f}"
+                
+                # Imprimir linha da tabela
+                print(f"{variavel:<25} {theta_mle_str:<15} {theta_bayes_str:<15} {diff_str:<12} {efeito_prior:<15}")
+                comparacao_mle_bayes_list.append({
+                    "Cliente": cliente,
+                    "Variável": variavel,
+                    "Unidade": unidade,
+                    "Theta_MLE": theta_mle,
+                    "Theta_Bayes": theta_bayes,
+                    "Diferença_Absoluta": diff_abs,
+                    "Diferença_Relativa_%": diff_rel,
+                    "Efeito_Prior": efeito_prior
+                })
 
-df_comparacao = pd.DataFrame(comparacoes_list)
-df_comparacao.to_csv("outputs/tabelas/comparacao_mle_bayes.csv", index=False)
-print("\nDataFrame de Comparação (MLE vs Bayes vs Teste):")
-print(df_comparacao)
+print("\n" + "="*80)
 
-print("\nConcluído. Gráficos e tabelas salvos em 'outputs/'.")
+# Salvar comparação detalhada em CSV
+if comparacao_mle_bayes_list:
+    df_comparacao_detalhada = pd.DataFrame(comparacao_mle_bayes_list)
+    df_comparacao_detalhada.to_csv("outputs/tabelas/comparacao_mle_bayes_detalhada.csv", index=False)
+
+    print(f"\nArquivo salvo: outputs/tabelas/comparacao_mle_bayes_detalhada.csv")
